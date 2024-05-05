@@ -1,4 +1,4 @@
-package database
+package goaws
 
 import (
 	"fmt"
@@ -7,12 +7,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-type GoAwsDbRecord struct {
-	*gorm.Model
-	Key   string `gorm:"key"`
-	Value string `gorm:"value"`
-}
 
 func ConnectDB() *gorm.DB {
 	var host = os.Getenv("POSTGRES_HOST")
