@@ -12,13 +12,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
+//todo: support multiple players
+
 type EnterRoundRequest struct {
-	CourseName              string  `json,required:"courseName"`
-	CourseRating            float32 `json,required:"courseRating"`
-	SlopeRating             float32 `json,required:"slopeRating"`
-	HolesPlayed             int     `json,required:"holesPlayed"`
-	AdjustedGrossScoreScore int     `json,required:"adjustedScore"`
-	Score                   int     `json:"score"`
+	CourseName         string  `json:"courseName"`
+	CourseRating       float32 `json:"courseRating"`
+	SlopeRating        float32 `json:"slopeRating"`
+	HolesPlayed        int     `json:"holesPlayed"`
+	AdjustedGrossScore int     `json:"adjustedScore"`
+	Score              int     `json:"score"`
 }
 
 type EnterRoundResponse struct {
@@ -37,13 +39,17 @@ func main() {
 			return nil, fmt.Errorf("only 9 or 18 hole rounds are currently supported")
 		}
 
+		if event.AdjustedGrossScore < 1 {
+			return nil, fmt.Errorf("no score")
+		}
+
 		newRound := goaws.Round{
 			CourseName:         event.CourseName,
 			CourseRating:       event.CourseRating,
 			SlopeRating:        event.SlopeRating,
 			HolesPlayed:        event.HolesPlayed,
 			Score:              event.Score,
-			AdjustedGrossScore: event.AdjustedGrossScoreScore,
+			AdjustedGrossScore: event.AdjustedGrossScore,
 		}
 
 		if err := db.Model(goaws.Round{}).Create(&newRound).Error; err != nil {
@@ -65,12 +71,15 @@ func createPublisher() func(ctx context.Context, newRound goaws.Round) {
 	queueUrl := os.Getenv("OUTPUT_QUEUE_URL")
 	sqsClient := sqs.NewFromConfig(sdkConfig)
 	return func(ctx context.Context, newRound goaws.Round) {
+		fmt.Println("publishing new round")
 		jsonBody, _ := json.Marshal(newRound)
 		body := string(jsonBody)
 		input := &sqs.SendMessageInput{
 			QueueUrl:    &queueUrl,
 			MessageBody: &body,
 		}
-		sqsClient.SendMessage(ctx, input)
+		if _, err := sqsClient.SendMessage(ctx, input); err != nil {
+			fmt.Println("Unable to publish: ", err)
+		}
 	}
 }
