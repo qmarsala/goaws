@@ -12,17 +12,34 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
+//todo: support multiple players
+
 func main() {
 	db := goaws.ConnectDB()
 	lambda.Start(func(ctx context.Context, sqsEvent events.SQSEvent) (map[string]interface{}, error) {
 		fmt.Println("score posted, recalculating handicap")
 		rounds := []goaws.Round{}
-		db.Model(goaws.Round{}).Limit(20).Order("CreatedAt DESC").Find(&rounds)
+		if err := db.Model(goaws.Round{}).Limit(20).
+			Order("created_at desc").
+			Find(&rounds).Error; err != nil {
+			fmt.Println("Error getting rounds: ", err)
+			return nil, err
+		}
+
+		if len(rounds) < 8 {
+			fmt.Println("not enough rounds yet")
+			return map[string]interface{}{}, nil
+		}
 
 		currentIndex := goaws.HandicapIndex{}
-		db.Model(goaws.HandicapIndex{}).Order("CreatedAt DESC").First(currentIndex)
+		if err := db.Model(goaws.HandicapIndex{}).
+			Order("created_at desc").
+			First(&currentIndex).Error; err != nil {
+			fmt.Println("Error getting handicap index: ", err)
+		}
 
 		newIndex := calculateHandicapIndex(rounds)
+		fmt.Println("new index: ", newIndex)
 		if newIndex.Value == currentIndex.Value {
 			return map[string]interface{}{}, nil
 		}
@@ -35,7 +52,10 @@ func main() {
 
 func calculateScoreDifferential(round goaws.Round) float32 {
 	const pcc int = 0 // todo: pcc, not totally sure what it is, though it is 0 most of the time
-	return (113 / round.SlopeRating) * (float32(round.AdjustedGrossScore) - round.CourseRating - float32(pcc))
+	fmt.Println("calculating differential: ", round)
+	diff := (113 / round.SlopeRating) * (float32(round.AdjustedGrossScore) - round.CourseRating - float32(pcc))
+	fmt.Println(diff)
+	return diff
 }
 
 func getTopEightScoreDifferentials(rounds []goaws.Round) []float32 {
