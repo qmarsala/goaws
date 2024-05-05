@@ -13,10 +13,12 @@ import (
 )
 
 type EnterRoundRequest struct {
-	CourseName   string  `json,required:"courseName"`
-	CourseRating float32 `json,required:"courseRating"`
-	HolesPlayed  int     `json,required:"holesPlayed"`
-	Score        int     `json,required:"score"`
+	CourseName              string  `json,required:"courseName"`
+	CourseRating            float32 `json,required:"courseRating"`
+	SlopeRating             float32 `json,required:"slopeRating"`
+	HolesPlayed             int     `json,required:"holesPlayed"`
+	AdjustedGrossScoreScore int     `json,required:"adjustedScore"`
+	Score                   int     `json:"score"`
 }
 
 type EnterRoundResponse struct {
@@ -36,10 +38,12 @@ func main() {
 		}
 
 		newRound := goaws.Round{
-			CourseName:   event.CourseName,
-			CourseRating: event.CourseRating,
-			HolesPlayed:  event.HolesPlayed,
-			Score:        event.Score,
+			CourseName:         event.CourseName,
+			CourseRating:       event.CourseRating,
+			SlopeRating:        event.SlopeRating,
+			HolesPlayed:        event.HolesPlayed,
+			Score:              event.Score,
+			AdjustedGrossScore: event.AdjustedGrossScoreScore,
 		}
 
 		if err := db.Model(goaws.Round{}).Create(&newRound).Error; err != nil {

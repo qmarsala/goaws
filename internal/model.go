@@ -9,8 +9,10 @@ type HandicapIndex struct {
 
 type Round struct {
 	*gorm.Model
-	CourseName   string
-	CourseRating float32
-	HolesPlayed  int
-	Score        int
+	CourseName         string
+	CourseRating       float32
+	SlopeRating        float32
+	HolesPlayed        int
+	Score              int
+	AdjustedGrossScore int
 }
