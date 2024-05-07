@@ -43,24 +43,37 @@ func main() {
 			return nil, fmt.Errorf("no score")
 		}
 
-		newRound := goaws.Round{
-			CourseName:         event.CourseName,
-			CourseRating:       event.CourseRating,
-			SlopeRating:        event.SlopeRating,
-			HolesPlayed:        event.HolesPlayed,
-			Score:              event.Score,
-			AdjustedGrossScore: event.AdjustedGrossScore,
-		}
-
-		if err := db.Model(goaws.Round{}).Create(&newRound).Error; err != nil {
+		currentIndex := goaws.HandicapIndex{}
+		err := db.Model(goaws.HandicapIndex{}).Order("created_at DESC").First(&currentIndex).Error
+		if err != nil {
 			return nil, err
 		}
 
-		publish(ctx, newRound)
+		newRound := createNewRound(event, currentIndex)
+		if err := db.Model(goaws.Round{}).Create(newRound).Error; err != nil {
+			return nil, err
+		}
+
+		publish(ctx, *newRound)
 		return &EnterRoundResponse{
 			Message: fmt.Sprintf("Round %v Posted.", newRound.ID),
 		}, nil
 	})
+}
+
+func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex) *goaws.Round {
+	newRound := goaws.Round{
+		CourseName:         event.CourseName,
+		CourseRating:       event.CourseRating,
+		SlopeRating:        event.SlopeRating,
+		HolesPlayed:        event.HolesPlayed,
+		Score:              event.Score,
+		AdjustedGrossScore: event.AdjustedGrossScore,
+	}
+	if currentIndex.ID > 0 {
+		newRound.Exceptional = newRound.AdjustedGrossScore < (int(currentIndex.Current) - 7)
+	}
+	return &newRound
 }
 
 func createPublisher() func(ctx context.Context, newRound goaws.Round) {
