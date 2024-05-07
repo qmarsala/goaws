@@ -1,36 +1,46 @@
 package goaws
 
-import (
-	"slices"
-)
-
 func CalculateHandicapIndex(rounds []Round) float32 {
-	return CalculateNOutOfTwentyAverage(rounds) - float32(getIndexAdjustment(len(rounds)))
+	return CalculateDifferentialAverage(rounds) - float32(getIndexAdjustment(len(rounds)))
 }
 
-func CalculateNOutOfTwentyAverage(rounds []Round) float32 {
+func CalculateDifferentialAverage(rounds []Round) float32 {
 	diffCount := getDiffCountPerRounds(len(rounds))
-	scoreDiffs := getScoreDifferentials(rounds)
+	adjustedRounds := applyExceptionRoundAdjustments(rounds)
 	sum := float32(0)
-	for _, s := range scoreDiffs[:diffCount] {
-		sum += s
+	for _, r := range adjustedRounds[:diffCount] {
+		sum += r.ScoreDifferential
 	}
 	return sum / float32(diffCount)
 }
 
-func getScoreDifferentials(rounds []Round) []float32 {
-	scoreDifferentials := []float32{}
-	for _, r := range rounds {
-		scoreDifferentials = append(scoreDifferentials, CalculateScoreDifferential(r))
-	}
-	slices.Sort(scoreDifferentials)
-	return scoreDifferentials
-}
-
 func CalculateScoreDifferential(round Round) float32 {
 	const pcc int = 0 // todo: pcc, not totally sure what it is, though it is 0 most of the time
-	diff := (113 / round.SlopeRating) * (float32(round.AdjustedGrossScore) - round.CourseRating - float32(pcc))
+	diff := (113 / round.SlopeRating) * (float32(round.PostedScore) - round.CourseRating - float32(pcc))
 	return diff
+}
+
+func applyExceptionRoundAdjustments(roundHistory []Round) []Round {
+	totalAdjustment := 0
+	for _, r := range roundHistory {
+		totalAdjustment = r.ExceptionalAdjustment
+	}
+	adjustedRounds := []Round{}
+	for _, v := range roundHistory {
+		adjustedRounds = append(adjustedRounds, Round{
+			CourseName:            v.CourseName,
+			CourseRating:          v.CourseRating,
+			SlopeRating:           v.SlopeRating,
+			HolesPlayed:           v.HolesPlayed,
+			Score:                 v.Score,
+			PostedScore:           v.PostedScore,
+			ScoreDifferential:     v.ScoreDifferential - float32(totalAdjustment),
+			ExceptionalAdjustment: v.ExceptionalAdjustment,
+			Exceptional:           v.Exceptional,
+			ThrowAway:             v.ThrowAway,
+		})
+	}
+	return adjustedRounds
 }
 
 func getDiffCountPerRounds(roundCount int) int {
