@@ -44,12 +44,16 @@ func main() {
 		}
 
 		currentIndex := goaws.HandicapIndex{}
-		err := db.Model(goaws.HandicapIndex{}).Order("created_at DESC").First(&currentIndex).Error
-		if err != nil {
+		if err := db.Model(goaws.HandicapIndex{}).Order("created_at DESC").First(&currentIndex).Error; err != nil {
 			return nil, err
 		}
 
-		newRound := createNewRound(event, currentIndex)
+		roundHistory := []goaws.Round{}
+		if err := db.Model(goaws.Round{}).Order("created_at DESC").Limit(20).Find(&roundHistory).Error; err != nil {
+			return nil, err
+		}
+
+		newRound := createNewRound(event, currentIndex, roundHistory)
 		if err := db.Model(goaws.Round{}).Create(newRound).Error; err != nil {
 			return nil, err
 		}
@@ -61,7 +65,7 @@ func main() {
 	})
 }
 
-func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex) *goaws.Round {
+func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex, roundHistory []goaws.Round) *goaws.Round {
 	newRound := goaws.Round{
 		CourseName:         event.CourseName,
 		CourseRating:       event.CourseRating,
@@ -72,6 +76,9 @@ func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex) 
 	}
 	if currentIndex.ID > 0 {
 		newRound.Exceptional = newRound.AdjustedGrossScore < (int(currentIndex.Current) - 7)
+	}
+	if currentIndex.ID > 0 && len(roundHistory) > 19 {
+		newRound.ThrowAway = goaws.CalculateNOutOfTwentyAverage(roundHistory)+3 > currentIndex.Low
 	}
 	return &newRound
 }
