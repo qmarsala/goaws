@@ -75,8 +75,12 @@ func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex, 
 		AdjustedGrossScore: event.AdjustedGrossScore,
 	}
 	if currentIndex.Model != nil {
-		//todo: adjusted gross score is not relative to par, so this logic isn't correct yet
-		newRound.Exceptional = newRound.AdjustedGrossScore < (int(currentIndex.Current) - 7)
+		//todo: course may not have been standard par, or a different number of wholes cold have been played.  how do we calculate this?
+		lowRounds := 72 - currentIndex.Current
+		if newRound.HolesPlayed == 9 {
+			lowRounds -= 36
+		}
+		newRound.Exceptional = lowRounds < (currentIndex.Current - 7)
 		if len(roundHistory) > 19 {
 			newRound.ThrowAway = goaws.CalculateNOutOfTwentyAverage(roundHistory) > (currentIndex.Low + 3)
 		}
