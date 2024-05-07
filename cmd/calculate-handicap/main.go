@@ -18,7 +18,6 @@ func main() {
 		fmt.Println("score posted, recalculating handicap")
 		rounds := []goaws.Round{}
 		if err := db.Model(goaws.Round{}).Limit(20).
-			Where("exceptional != true").
 			Where("throw_away != true").
 			Order("created_at desc").
 			Find(&rounds).Error; err != nil {
