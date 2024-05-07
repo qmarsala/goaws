@@ -1,7 +1,6 @@
 package goaws
 
 import (
-	"fmt"
 	"slices"
 )
 
@@ -30,9 +29,7 @@ func getScoreDifferentials(rounds []Round) []float32 {
 
 func calculateScoreDifferential(round Round) float32 {
 	const pcc int = 0 // todo: pcc, not totally sure what it is, though it is 0 most of the time
-	fmt.Println("calculating differential: ", round)
 	diff := (113 / round.SlopeRating) * (float32(round.AdjustedGrossScore) - round.CourseRating - float32(pcc))
-	fmt.Println(diff)
 	return diff
 }
 
