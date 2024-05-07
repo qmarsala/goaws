@@ -5,10 +5,8 @@ import (
 	"slices"
 )
 
-func CalculateHandicapIndex(rounds []Round) HandicapIndex {
-	return HandicapIndex{
-		Current: (CalculateNOutOfTwentyAverage(rounds)) - float32(getIndexAdjustment(len(rounds))),
-	}
+func CalculateHandicapIndex(rounds []Round) float32 {
+	return CalculateNOutOfTwentyAverage(rounds) - float32(getIndexAdjustment(len(rounds)))
 }
 
 func CalculateNOutOfTwentyAverage(rounds []Round) float32 {

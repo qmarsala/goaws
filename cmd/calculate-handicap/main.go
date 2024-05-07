@@ -38,10 +38,17 @@ func main() {
 			fmt.Println("Error getting handicap index: ", err)
 		}
 
-		newIndex := goaws.CalculateHandicapIndex(rounds)
-		fmt.Println("new index: ", newIndex)
-		if newIndex.Current == currentIndex.Current {
+		newIndexValue := goaws.CalculateHandicapIndex(rounds)
+		fmt.Println("new index: ", newIndexValue)
+		if newIndexValue == currentIndex.Current {
 			return map[string]interface{}{}, nil
+		}
+		newIndex := goaws.HandicapIndex{
+			Current: newIndexValue,
+			Low:     currentIndex.Low,
+		}
+		if newIndexValue < currentIndex.Low {
+			newIndex.Low = newIndexValue
 		}
 		if err := db.Model(goaws.HandicapIndex{}).Create(&newIndex).Error; err != nil {
 			return nil, err
