@@ -67,31 +67,18 @@ func main() {
 
 func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex, roundHistory []goaws.Round) *goaws.Round {
 	newRound := goaws.Round{
-		CourseName:   event.CourseName,
-		CourseRating: event.CourseRating,
-		SlopeRating:  event.SlopeRating,
-		HolesPlayed:  event.HolesPlayed,
-		Score:        event.Score,
-		PostedScore:  event.PostedScore,
+		CourseName:        event.CourseName,
+		CourseRating:      event.CourseRating,
+		SlopeRating:       event.SlopeRating,
+		HolesPlayed:       event.HolesPlayed,
+		Score:             event.Score,
+		PostedScore:       event.PostedScore,
+		ScoreDifferential: goaws.CalculateScoreDifferential(event.PostedScore, event.SlopeRating, event.CourseRating),
 	}
-	newRound.ScoreDifferential = goaws.CalculateScoreDifferential(newRound)
 	if currentIndex.Model != nil {
 		newRound.Exceptional = newRound.ScoreDifferential < (currentIndex.Current - 7)
-		switch {
-		case newRound.ScoreDifferential-currentIndex.Current > -10 &&
-			newRound.ScoreDifferential-currentIndex.Current <= -7:
-			newRound.ExceptionalAdjustment = -1
-		case newRound.ScoreDifferential-currentIndex.Current <= -10:
-			newRound.ExceptionalAdjustment = -2
-		default:
-			newRound.ExceptionalAdjustment = 0
-		}
-
-		roundHistory = append(roundHistory, newRound)
-		differentialAverage := goaws.CalculateDifferentialAverage(roundHistory)
-		if len(roundHistory) > 19 {
-			newRound.ThrowAway = differentialAverage > (currentIndex.Low + 3)
-		}
+		newRound.ExceptionalAdjustment = goaws.GetExceptionRoundAdjustment(newRound.ScoreDifferential, currentIndex.Current)
+		newRound.ThrowAway = goaws.IsThrowAwayRound(roundHistory, newRound, currentIndex.Low)
 	}
 	return &newRound
 }

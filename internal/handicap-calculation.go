@@ -14,16 +14,37 @@ func CalculateDifferentialAverage(rounds []Round) float32 {
 	return sum / float32(diffCount)
 }
 
-func CalculateScoreDifferential(round Round) float32 {
+func CalculateScoreDifferential(score int, slopeRating float32, courseRating float32) float32 {
 	const pcc int = 0 // todo: pcc, not totally sure what it is, though it is 0 most of the time
-	diff := (113 / round.SlopeRating) * (float32(round.PostedScore) - round.CourseRating - float32(pcc))
+	diff := (113 / slopeRating) * (float32(score) - courseRating - float32(pcc))
 	return diff
+}
+
+func GetExceptionRoundAdjustment(scoreDifferential float32, currentIndex float32) int {
+	switch {
+	case scoreDifferential-currentIndex > -10 &&
+		scoreDifferential-currentIndex <= -7:
+		return -1
+	case scoreDifferential-currentIndex <= -10:
+		return -2
+	default:
+		return 0
+	}
+}
+
+func IsThrowAwayRound(roundHistory []Round, newRound Round, currentLow float32) bool {
+	roundHistory = append(roundHistory, newRound)
+	if len(roundHistory) > 19 {
+		differentialAverage := CalculateDifferentialAverage(roundHistory)
+		return differentialAverage > (currentLow + 3)
+	}
+	return false
 }
 
 func applyExceptionRoundAdjustments(roundHistory []Round) []Round {
 	totalAdjustment := 0
 	for _, r := range roundHistory {
-		totalAdjustment = r.ExceptionalAdjustment
+		totalAdjustment += r.ExceptionalAdjustment
 	}
 	adjustedRounds := []Round{}
 	for _, v := range roundHistory {
