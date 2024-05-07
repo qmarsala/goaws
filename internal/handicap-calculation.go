@@ -21,13 +21,13 @@ func CalculateNOutOfTwentyAverage(rounds []Round) float32 {
 func getScoreDifferentials(rounds []Round) []float32 {
 	scoreDifferentials := []float32{}
 	for _, r := range rounds {
-		scoreDifferentials = append(scoreDifferentials, calculateScoreDifferential(r))
+		scoreDifferentials = append(scoreDifferentials, CalculateScoreDifferential(r))
 	}
 	slices.Sort(scoreDifferentials)
 	return scoreDifferentials
 }
 
-func calculateScoreDifferential(round Round) float32 {
+func CalculateScoreDifferential(round Round) float32 {
 	const pcc int = 0 // todo: pcc, not totally sure what it is, though it is 0 most of the time
 	diff := (113 / round.SlopeRating) * (float32(round.AdjustedGrossScore) - round.CourseRating - float32(pcc))
 	return diff

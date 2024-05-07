@@ -75,14 +75,13 @@ func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex, 
 		AdjustedGrossScore: event.AdjustedGrossScore,
 	}
 	if currentIndex.Model != nil {
-		//todo: course may not have been standard par, or a different number of wholes cold have been played.  how do we calculate this?
-		lowRounds := 72 - currentIndex.Current
-		if newRound.HolesPlayed == 9 {
-			lowRounds -= 36
-		}
-		newRound.Exceptional = lowRounds < (currentIndex.Current - 7)
+		//todo: this is probably what we need, though, exceptional rounds get 'adjusted' not ignored
+		roundDifferential := goaws.CalculateScoreDifferential(newRound)
+		newRound.Exceptional = roundDifferential < (currentIndex.Current - 7)
+
+		nOutOfTwenty := goaws.CalculateNOutOfTwentyAverage(roundHistory)
 		if len(roundHistory) > 19 {
-			newRound.ThrowAway = goaws.CalculateNOutOfTwentyAverage(roundHistory) > (currentIndex.Low + 3)
+			newRound.ThrowAway = nOutOfTwenty > (currentIndex.Low + 3)
 		}
 	}
 	return &newRound
