@@ -16,14 +16,16 @@ type HandicapIndex struct {
 
 type Round struct {
 	*gorm.Model
-	CourseName         string
-	CourseRating       float32
-	SlopeRating        float32
-	HolesPlayed        int
-	Score              int
-	AdjustedGrossScore int
-	Exceptional        bool
-	ThrowAway          bool
+	CourseName            string
+	CourseRating          float32
+	SlopeRating           float32
+	HolesPlayed           int
+	Score                 int
+	PostedScore           int
+	ScoreDifferential     float32
+	ExceptionalAdjustment int
+	Exceptional           bool
+	ThrowAway             bool
 }
 
 func ConnectDB() *gorm.DB {
