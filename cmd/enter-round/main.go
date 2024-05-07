@@ -15,12 +15,12 @@ import (
 //todo: support multiple players
 
 type EnterRoundRequest struct {
-	CourseName         string  `json:"courseName"`
-	CourseRating       float32 `json:"courseRating"`
-	SlopeRating        float32 `json:"slopeRating"`
-	HolesPlayed        int     `json:"holesPlayed"`
-	AdjustedGrossScore int     `json:"adjustedScore"`
-	Score              int     `json:"score"`
+	CourseName   string  `json:"courseName"`
+	CourseRating float32 `json:"courseRating"`
+	SlopeRating  float32 `json:"slopeRating"`
+	HolesPlayed  int     `json:"holesPlayed"`
+	PostedScore  int     `json:"postedScore"`
+	Score        int     `json:"score"`
 }
 
 type EnterRoundResponse struct {
@@ -39,8 +39,8 @@ func main() {
 			return nil, fmt.Errorf("only 9 or 18 hole rounds are currently supported")
 		}
 
-		if event.AdjustedGrossScore < 1 {
-			return nil, fmt.Errorf("no score")
+		if event.PostedScore < 1 {
+			return nil, fmt.Errorf("no posted score for handicap purposes found")
 		}
 
 		currentIndex := goaws.HandicapIndex{}
@@ -49,7 +49,7 @@ func main() {
 		}
 
 		roundHistory := []goaws.Round{}
-		if err := db.Model(goaws.Round{}).Order("created_at DESC").Limit(20).Find(&roundHistory).Error; err != nil {
+		if err := db.Model(goaws.Round{}).Order("created_at DESC").Limit(19).Find(&roundHistory).Error; err != nil {
 			return nil, err
 		}
 
@@ -67,21 +67,30 @@ func main() {
 
 func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex, roundHistory []goaws.Round) *goaws.Round {
 	newRound := goaws.Round{
-		CourseName:         event.CourseName,
-		CourseRating:       event.CourseRating,
-		SlopeRating:        event.SlopeRating,
-		HolesPlayed:        event.HolesPlayed,
-		Score:              event.Score,
-		AdjustedGrossScore: event.AdjustedGrossScore,
+		CourseName:   event.CourseName,
+		CourseRating: event.CourseRating,
+		SlopeRating:  event.SlopeRating,
+		HolesPlayed:  event.HolesPlayed,
+		Score:        event.Score,
+		PostedScore:  event.PostedScore,
 	}
+	newRound.ScoreDifferential = goaws.CalculateScoreDifferential(newRound)
 	if currentIndex.Model != nil {
-		//todo: this is probably what we need, though, exceptional rounds get 'adjusted' not ignored
-		roundDifferential := goaws.CalculateScoreDifferential(newRound)
-		newRound.Exceptional = roundDifferential < (currentIndex.Current - 7)
+		newRound.Exceptional = newRound.ScoreDifferential < (currentIndex.Current - 7)
+		switch {
+		case newRound.ScoreDifferential-currentIndex.Current > -10 &&
+			newRound.ScoreDifferential-currentIndex.Current <= -7:
+			newRound.ExceptionalAdjustment = -1
+		case newRound.ScoreDifferential-currentIndex.Current <= -10:
+			newRound.ExceptionalAdjustment = -2
+		default:
+			newRound.ExceptionalAdjustment = 0
+		}
 
-		nOutOfTwenty := goaws.CalculateNOutOfTwentyAverage(roundHistory)
+		roundHistory = append(roundHistory, newRound)
+		differentialAverage := goaws.CalculateDifferentialAverage(roundHistory)
 		if len(roundHistory) > 19 {
-			newRound.ThrowAway = nOutOfTwenty > (currentIndex.Low + 3)
+			newRound.ThrowAway = differentialAverage > (currentIndex.Low + 3)
 		}
 	}
 	return &newRound
