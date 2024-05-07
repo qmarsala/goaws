@@ -4,7 +4,8 @@ import "gorm.io/gorm"
 
 type HandicapIndex struct {
 	*gorm.Model
-	Value float32
+	Current float32
+	Low     float32
 }
 
 type Round struct {
@@ -15,4 +16,5 @@ type Round struct {
 	HolesPlayed        int
 	Score              int
 	AdjustedGrossScore int
+	Exceptional        bool
 }
