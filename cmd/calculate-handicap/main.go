@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"math"
 	"slices"
 
 	goaws "goaws/internal"
@@ -20,13 +19,14 @@ func main() {
 		fmt.Println("score posted, recalculating handicap")
 		rounds := []goaws.Round{}
 		if err := db.Model(goaws.Round{}).Limit(20).
+			Where("exception <> 1").
 			Order("created_at desc").
 			Find(&rounds).Error; err != nil {
 			fmt.Println("Error getting rounds: ", err)
 			return nil, err
 		}
 
-		if len(rounds) < 8 {
+		if len(rounds) < 3 {
 			fmt.Println("not enough rounds yet")
 			return map[string]interface{}{}, nil
 		}
@@ -40,7 +40,7 @@ func main() {
 
 		newIndex := calculateHandicapIndex(rounds)
 		fmt.Println("new index: ", newIndex)
-		if newIndex.Value == currentIndex.Value {
+		if newIndex.Current == currentIndex.Current {
 			return map[string]interface{}{}, nil
 		}
 		if err := db.Model(goaws.HandicapIndex{}).Create(&newIndex).Error; err != nil {
@@ -48,6 +48,31 @@ func main() {
 		}
 		return map[string]interface{}{}, nil
 	})
+}
+
+func calculateHandicapIndex(rounds []goaws.Round) goaws.HandicapIndex {
+	return goaws.HandicapIndex{
+		Current: (nOutOfTwentyAverage(rounds)) - float32(getIndexAdjustment(len(rounds))),
+	}
+}
+
+func nOutOfTwentyAverage(rounds []goaws.Round) float32 {
+	diffCount := getDiffCountPerRounds(len(rounds))
+	scoreDiffs := getScoreDifferentials(rounds)
+	sum := float32(0)
+	for _, s := range scoreDiffs[:diffCount] {
+		sum += s
+	}
+	return sum / float32(diffCount)
+}
+
+func getScoreDifferentials(rounds []goaws.Round) []float32 {
+	scoreDifferentials := []float32{}
+	for _, r := range rounds {
+		scoreDifferentials = append(scoreDifferentials, calculateScoreDifferential(r))
+	}
+	slices.Sort(scoreDifferentials)
+	return scoreDifferentials
 }
 
 func calculateScoreDifferential(round goaws.Round) float32 {
@@ -58,29 +83,32 @@ func calculateScoreDifferential(round goaws.Round) float32 {
 	return diff
 }
 
-func getTopEightScoreDifferentials(rounds []goaws.Round) []float32 {
-	topEight := []float32{}
-	for _, r := range rounds {
-		slices.Sort(topEight)
-		slices.Reverse(topEight)
-		scoreDifferential := calculateScoreDifferential(r)
-		if len(topEight) < 8 {
-			topEight = append(topEight, scoreDifferential)
-		} else if scoreDifferential < topEight[0] {
-			topEight[0] = scoreDifferential
-		}
+func getDiffCountPerRounds(roundCount int) int {
+	switch {
+	case roundCount < 6:
+		return 1
+	case roundCount < 9:
+		return 2
+	case roundCount < 12:
+		return 3
+	case roundCount < 15:
+		return 4
+	case roundCount < 17:
+		return 6
+	case roundCount < 19:
+		return 7
+	default:
+		return 8
 	}
-	return topEight
 }
 
-func calculateHandicapIndex(rounds []goaws.Round) goaws.HandicapIndex {
-	sum := float32(0)
-	topEight := getTopEightScoreDifferentials(rounds)
-	for _, s := range topEight {
-		sum += s
-	}
-	//todo: apply any safe guards for needed for posted round
-	return goaws.HandicapIndex{
-		Value: sum / float32(math.Max(1, float64(len(topEight)))),
+func getIndexAdjustment(roundCount int) int {
+	switch {
+	case roundCount == 3:
+		return 2
+	case roundCount == 4 || roundCount == 6:
+		return 1
+	default:
+		return 0
 	}
 }
