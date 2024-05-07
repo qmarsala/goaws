@@ -78,7 +78,7 @@ func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex, 
 		//todo: adjusted gross score is not relative to par, so this logic isn't correct yet
 		newRound.Exceptional = newRound.AdjustedGrossScore < (int(currentIndex.Current) - 7)
 		if len(roundHistory) > 19 {
-			newRound.ThrowAway = (goaws.CalculateNOutOfTwentyAverage(roundHistory) + 3) > currentIndex.Low
+			newRound.ThrowAway = goaws.CalculateNOutOfTwentyAverage(roundHistory) > (currentIndex.Low + 3)
 		}
 	}
 	return &newRound
