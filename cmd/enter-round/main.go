@@ -44,7 +44,7 @@ func main() {
 		}
 
 		currentIndex := goaws.HandicapIndex{}
-		if err := db.Model(goaws.HandicapIndex{}).Order("created_at DESC").First(&currentIndex).Error; err != nil {
+		if err := db.Model(goaws.HandicapIndex{}).Order("created_at DESC").First(&currentIndex).Error; err != nil && err.Error() != "record not found" {
 			return nil, err
 		}
 
@@ -74,11 +74,12 @@ func createNewRound(event *EnterRoundRequest, currentIndex goaws.HandicapIndex, 
 		Score:              event.Score,
 		AdjustedGrossScore: event.AdjustedGrossScore,
 	}
-	if currentIndex.ID > 0 {
+	if currentIndex.Model != nil {
+		//todo: adjusted gross score is not relative to par, so this logic isn't correct yet
 		newRound.Exceptional = newRound.AdjustedGrossScore < (int(currentIndex.Current) - 7)
-	}
-	if currentIndex.ID > 0 && len(roundHistory) > 19 {
-		newRound.ThrowAway = goaws.CalculateNOutOfTwentyAverage(roundHistory)+3 > currentIndex.Low
+		if len(roundHistory) > 19 {
+			newRound.ThrowAway = (goaws.CalculateNOutOfTwentyAverage(roundHistory) + 3) > currentIndex.Low
+		}
 	}
 	return &newRound
 }
