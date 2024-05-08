@@ -1,5 +1,7 @@
 package goaws
 
+import "slices"
+
 func CalculateHandicapIndex(rounds []Round) float32 {
 	return CalculateDifferentialAverage(rounds) - float32(getIndexAdjustment(len(rounds)))
 }
@@ -7,6 +9,7 @@ func CalculateHandicapIndex(rounds []Round) float32 {
 func CalculateDifferentialAverage(rounds []Round) float32 {
 	diffCount := getDiffCountPerRounds(len(rounds))
 	adjustedRounds := applyExceptionRoundAdjustments(rounds)
+	sortByDifferential(adjustedRounds)
 	sum := float32(0)
 	for _, r := range adjustedRounds[:diffCount] {
 		sum += r.ScoreDifferential
@@ -62,6 +65,19 @@ func applyExceptionRoundAdjustments(roundHistory []Round) []Round {
 		})
 	}
 	return adjustedRounds
+}
+
+func sortByDifferential(rounds []Round) {
+	slices.SortFunc(rounds, func(a, b Round) int {
+		switch {
+		case a.ScoreDifferential < b.ScoreDifferential:
+			return -1
+		case a.ScoreDifferential > b.ScoreDifferential:
+			return 1
+		default:
+			return 0
+		}
+	})
 }
 
 func getDiffCountPerRounds(roundCount int) int {
