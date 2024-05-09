@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"goaws/di"
 	goaws "goaws/internal"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -13,7 +14,11 @@ import (
 //todo: support multiple players
 
 func main() {
-	db := goaws.ConnectDB()
+	db, err := di.InitializeDatabase()
+	if err != nil {
+		panic(err)
+	}
+
 	lambda.Start(func(ctx context.Context, sqsEvent events.SQSEvent) (map[string]interface{}, error) {
 		fmt.Println("score posted, recalculating handicap")
 		rounds := []goaws.Round{}

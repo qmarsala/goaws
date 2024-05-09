@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"goaws/di"
 	goaws "goaws/internal"
 	"os"
 
@@ -28,7 +29,11 @@ type EnterRoundResponse struct {
 }
 
 func main() {
-	db := goaws.ConnectDB()
+	db, err := di.InitializeDatabase()
+	if err != nil {
+		panic(err)
+	}
+
 	publish := createPublisher()
 	lambda.Start(func(ctx context.Context, event *EnterRoundRequest) (*EnterRoundResponse, error) {
 		if event == nil {

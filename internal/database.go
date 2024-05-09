@@ -28,7 +28,19 @@ type Round struct {
 	ThrowAway             bool
 }
 
-func ConnectDB() *gorm.DB {
+type DatabaseConnection struct {
+	*gorm.DB
+}
+
+func ProvideDatabase() (DatabaseConnection, error) {
+	if db, err := connectDB(); err == nil {
+		return DatabaseConnection{DB: db}, nil
+	} else {
+		return DatabaseConnection{}, err
+	}
+}
+
+func connectDB() (*gorm.DB, error) {
 	var host = os.Getenv("POSTGRES_HOST")
 	var port = os.Getenv("POSTGRES_PORT")
 	var user = os.Getenv("POSTGRES_USER")
@@ -37,8 +49,8 @@ func ConnectDB() *gorm.DB {
 	connectionString := fmt.Sprintf(connectionStringTpl, host, user, pass, port)
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
-		fmt.Print(":(")
-		panic("failed to connect database")
+		fmt.Print("failed to connect database")
+		return nil, err
 	}
-	return db
+	return db, nil
 }
