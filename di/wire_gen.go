@@ -13,7 +13,11 @@ import (
 // Injectors from wire.go:
 
 func InitializeDatabase() (goaws.DatabaseConnection, error) {
-	databaseConnection, err := goaws.ProvideDatabase()
+	databaseConnectionConfig, err := goaws.ProvideConfig()
+	if err != nil {
+		return goaws.DatabaseConnection{}, err
+	}
+	databaseConnection, err := goaws.ProvideDatabase(databaseConnectionConfig)
 	if err != nil {
 		return goaws.DatabaseConnection{}, err
 	}

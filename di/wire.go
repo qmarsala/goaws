@@ -9,6 +9,6 @@ import (
 )
 
 func InitializeDatabase() (goaws.DatabaseConnection, error) {
-	wire.Build(goaws.ProvideDatabase)
+	wire.Build(goaws.ProvideConfig, goaws.ProvideDatabase)
 	return goaws.DatabaseConnection{}, nil
 }
